@@ -20,13 +20,13 @@
 
 2. **Клонирование репозитория**:
    ```bash
-   git clone https://github.com/your-repo/discord-registration-bot.git
-   cd discord-registration-bot
+   git clone https://github.com/reinbowARA/DiscordRegistredBot
+   cd DiscordRegistredBot
    ```
 
 3. **Установка зависимостей**:
    ```bash
-   go get github.com/bwmarrin/discordgo
+   go mod tidy
    ```
 
 4. **Настройка конфигурации**:
