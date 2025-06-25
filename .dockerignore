@@ -1,0 +1,14 @@
+.git
+.gitignore
+.vscode
+.configs  # Тестовая папка
+vscode   # Тестовая папка
+docker-compose.yml
+Dockerfile
+*.exe
+*.log
+**/__pycache__
+**/*.swp
+**/.DS_Store
+README.md
+LICENSE
