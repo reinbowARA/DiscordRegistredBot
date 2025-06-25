@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/joho/godotenv"
 	"github.com/reinbowARA/DiscordRegistredBot/handler"
 )
 
@@ -22,11 +21,6 @@ func main() {
 	// Загружаем вопросы
 	if err := handler.LoadQuestions(); err != nil {
 		fmt.Println("Ошибка загрузки вопросов:", err)
-		return
-	}
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println(err.Error())
 		return
 	}
 	session, err := discordgo.New("Bot " + os.Getenv("DISCORD_BOT_TOKEN"))
