@@ -120,7 +120,6 @@ func showInitHelp(s *discordgo.Session, channelID string) {
 !init guild_role <role_id> - Установка роли для согильдийцев
 !init friend_role <role_id> - Установка роли для друзей
 !init load <json file> - Конфигурация через файл
-!init save - Сохранить конфигурацию
 !init show - Показать текущую конфигурацию
 
 **Как получить ID:**
