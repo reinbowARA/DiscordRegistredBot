@@ -14,7 +14,6 @@ type ServerConfig struct {
 
 // Глобальные переменные
 var (
-	configFile        = "./config/server_config.json"
 	QuestionsFilePath = "./config/question.json"
 	questions         []Question
 	registeringUsers  = make(map[string]*RegistrationState)

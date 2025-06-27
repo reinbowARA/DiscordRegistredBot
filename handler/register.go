@@ -151,7 +151,7 @@ func (sc *ServerConfig) processRegistrationAnswer(s *discordgo.Session, m *disco
 				options = append(options, "`"+key+"`")
 			}
 			s.ChannelMessageSend(m.ChannelID,
-				"⚠️ Пожалуйста, выбери один из предложенных вариантов: "+
+				"Пожалуйста, выбери один из предложенных вариантов: "+
 					strings.Join(options, ", "))
 			return
 		}
@@ -176,9 +176,9 @@ func (sc *ServerConfig) completeRegistration(s *discordgo.Session, state *Regist
 	// Меняем никнейм
 	err := s.GuildMemberNickname(sc.GuildID, userID, nickname)
 	if err != nil {
-		s.ChannelMessageSend(channelID, "⚠️ Ошибка при смене ника: "+err.Error())
+		s.ChannelMessageSend(channelID, "Ошибка при смене ника: "+err.Error())
 	} else {
-		s.ChannelMessageSend(channelID, "✅ Твой ник успешно изменен на: "+nickname)
+		s.ChannelMessageSend(channelID, "Твой ник успешно изменен на: "+nickname)
 	}
 
 	// Удаляем роль регистрации

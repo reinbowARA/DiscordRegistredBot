@@ -13,12 +13,6 @@ import (
 func main() {
 	var srv handler.ServerConfig
 
-	// Загружаем конфигурацию
-	if err := srv.LoadConfig(); err != nil {
-		fmt.Println("⚠️ Конфигурация не загружена. Используйте команду !init для настройки")
-	}
-
-	// Загружаем вопросы
 	if err := handler.LoadQuestions(); err != nil {
 		fmt.Println("Ошибка загрузки вопросов:", err)
 		return

@@ -7,10 +7,10 @@ import (
 )
 
 // Обработка команд администратора
-func (sc *ServerConfig)handleAdminCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (sc *ServerConfig) handleAdminCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Проверка прав администратора
 	if !IsAdmin(s, m) {
-		s.ChannelMessageSend(m.ChannelID, "❌ У вас недостаточно прав для выполнения этой команды")
+		s.ChannelMessageSend(m.ChannelID, "У вас недостаточно прав для выполнения этой команды")
 		return
 	}
 	switch strings.ToLower(m.Content) {
@@ -30,6 +30,6 @@ func (sc *ServerConfig)handleAdminCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.handleStatusCommand(s, m)
 
 	default:
-		s.ChannelMessageSend(m.ChannelID, "❌ Неизвестная команда. Используй `!help` для списка команд")
+		s.ChannelMessageSend(m.ChannelID, "Неизвестная команда. Используй `!help` для списка команд")
 	}
 }

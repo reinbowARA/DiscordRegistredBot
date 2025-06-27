@@ -9,11 +9,11 @@ import (
 
 // Удаление всех ролей у всех пользователей
 func (sc *ServerConfig) removeAllRoles(s *discordgo.Session, m *discordgo.MessageCreate) {
-	s.ChannelMessageSend(m.ChannelID, "⏳ Начинаю удаление всех ролей... Это может занять время")
+	s.ChannelMessageSend(m.ChannelID, "Начинаю удаление всех ролей... Это может занять время")
 
 	members, err := s.GuildMembers(sc.GuildID, "", 1000)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ Ошибка получения списка участников: "+err.Error())
+		s.ChannelMessageSend(m.ChannelID, "Ошибка получения списка участников: "+err.Error())
 		return
 	}
 
@@ -59,7 +59,7 @@ func (sc *ServerConfig) removeAllRoles(s *discordgo.Session, m *discordgo.Messag
 	}
 
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(
-		"✅ Удаление ролей завершено!\nУспешно: %d\nНе удалось: %d",
+		"Удаление ролей завершено!\nУспешно: %d\nНе удалось: %d",
 		successCount, failCount))
 }
 
@@ -67,13 +67,13 @@ func (sc *ServerConfig) removeAllRoles(s *discordgo.Session, m *discordgo.Messag
 func (sc *ServerConfig) startRegistrationForUnregistered(s *discordgo.Session, m *discordgo.MessageCreate) {
 	registrationRoleID := findRoleID(s, sc.GuildID, sc.RegistrationRole)
 	if registrationRoleID == "" {
-		s.ChannelMessageSend(m.ChannelID, "❌ Роль 'Регистрация' не найдена")
+		s.ChannelMessageSend(m.ChannelID, "Роль 'Регистрация' не найдена")
 		return
 	}
 
 	members, err := s.GuildMembers(sc.GuildID, "", 1000)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ Ошибка получения списка участников: "+err.Error())
+		s.ChannelMessageSend(m.ChannelID, "Ошибка получения списка участников: "+err.Error())
 		return
 	}
 
@@ -129,7 +129,7 @@ func (sc *ServerConfig) startRegistrationForUnregistered(s *discordgo.Session, m
 	}
 
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(
-		"✅ Запущена регистрация для %d пользователей", count))
+		"Запущена регистрация для %d пользователей", count))
 }
 
 // Принудительное прерывание регистраций
@@ -152,19 +152,19 @@ func (sc *ServerConfig) stopAllRegistrations(s *discordgo.Session, m *discordgo.
 	}
 
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(
-		"✅ Прервано %d регистрационных сессий", count))
+		"Прервано %d регистрационных сессий", count))
 }
 
 // Отображение справки по командам
 func (sc *ServerConfig) showHelp(s *discordgo.Session, m *discordgo.MessageCreate) {
-	helpMessage := `**📝 Доступные команды администратора:**
+	helpMessage := `**Доступные команды администратора:**
 
 !clsRoles - Удаляет ВСЕ роли у ВСЕХ пользователей сервера
 !startRegistred - Запускает регистрацию для пользователей без роли "Регистрация"
 !stopRegistred - Принудительно прерывает ВСЕ активные регистрационные сессии
 !help - Показывает это сообщение
 
-**⚠️ Внимание:**
+**Внимание:**
 - Команды работают только в специальном канале для команд
 - Требуют прав администратора
 - Команда !clsRoles необратима и удаляет ВСЕ роли у ВСЕХ пользователей
@@ -181,7 +181,7 @@ func (sc *ServerConfig) handleStatusCommand(s *discordgo.Session, m *discordgo.M
 	// Получаем статистику сервера
 	guild, _ := s.Guild(sc.GuildID)
 
-	response := fmt.Sprintf("**🤖 Статус бота:**\nВерсия: 1.0.0\nПинг: %dms\nАктивных сессий: %d\n\n**📊 Статистика сервера:**\nГильдия: %s\nВсего участников: %d\nРолей: %d\n\n**Автор**: <@302859679929729024>",
+	response := fmt.Sprintf("**Статус бота:**\nВерсия: 1.0.0\nПинг: %dms\nАктивных сессий: %d\n\n**Статистика сервера:**\nГильдия: %s\nВсего участников: %d\nРолей: %d\n\n**Автор**: <@302859679929729024>",
 		s.HeartbeatLatency().Milliseconds(),
 		activeSessions,
 		guild.Name,

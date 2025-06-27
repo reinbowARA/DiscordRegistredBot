@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -22,62 +21,62 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 	switch args[1] {
 	case "guild":
 		if len(args) < 3 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Укажите ID сервера: `!init guild <server_id>`")
+			s.ChannelMessageSend(m.ChannelID, "Укажите ID сервера: `!init guild <server_id>`")
 			return
 		}
 		sc.GuildID = args[2]
 
 	case "role":
 		if len(args) < 3 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Укажите ID роли регистрации: `!init role <role_id>`")
+			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли регистрации: `!init role <role_id>`")
 			return
 		}
 		sc.RegistrationRole = args[2]
 
 	case "category":
 		if len(args) < 3 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Укажите ID категории: `!init category <category_id>`")
+			s.ChannelMessageSend(m.ChannelID, "Укажите ID категории: `!init category <category_id>`")
 			return
 		}
 		sc.CategoryID = args[2]
 
 	case "channel":
 		if len(args) < 3 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Укажите ID канала команд: `!init channel <channel_id>`")
+			s.ChannelMessageSend(m.ChannelID, "Укажите ID канала команд: `!init channel <channel_id>`")
 			return
 		}
 		sc.CommandChannelID = args[2]
 
 	case "guild_role":
 		if len(args) < 3 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Укажите ID роли согильдийца: `!init guild_role <role_id>`")
+			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли согильдийца: `!init guild_role <role_id>`")
 			return
 		}
 		sc.GuildRoleId = args[2]
 
 	case "friend_role":
 		if len(args) < 3 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Укажите ID роли друга: `!init friend_role <role_id>`")
+			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли друга: `!init friend_role <role_id>`")
 			return
 		}
-		sc.RegistrationRole = args[2]
+		sc.FriendRoleId = args[2]
 
 	case "load":
 		if len(m.Attachments) == 0 {
-			s.ChannelMessageSend(m.ChannelID, "❌ Прикрепите JSON-файл с конфигурацией")
+			s.ChannelMessageSend(m.ChannelID, "Прикрепите JSON-файл с конфигурацией")
 			return
 		}
 
 		attachment := m.Attachments[0]
 		if !strings.HasSuffix(attachment.Filename, ".json") {
-			s.ChannelMessageSend(m.ChannelID, "❌ Файл должен быть в формате JSON")
+			s.ChannelMessageSend(m.ChannelID, "Файл должен быть в формате JSON")
 			return
 		}
 
 		// Скачиваем файл
 		resp, err := http.Get(attachment.URL)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "❌ Ошибка загрузки файла: "+err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка загрузки файла: "+err.Error())
 			return
 		}
 		defer resp.Body.Close()
@@ -85,32 +84,19 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		// Читаем содержимое
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "❌ Ошибка чтения файла: "+err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка чтения файла: "+err.Error())
 			return
 		}
 
 		// Парсим JSON
-		var newConfig ServerConfig
-		if err := json.Unmarshal(data, &newConfig); err != nil {
-			s.ChannelMessageSend(m.ChannelID, "❌ Ошибка парсинга JSON: "+err.Error())
+		if err := json.Unmarshal(data, sc); err != nil {
+			s.ChannelMessageSend(m.ChannelID, "Ошибка парсинга JSON: "+err.Error())
 			return
 		}
 
 		// Применяем конфигурацию
-		sc = &newConfig
-		s.ChannelMessageSend(m.ChannelID, "✅ Конфигурация загружена из файла!")
+		s.ChannelMessageSend(m.ChannelID, "Конфигурация загружена из файла!")
 		sc.showCurrentConfig(s, m.ChannelID)
-
-	case "save":
-		if err := sc.SaveConfig(); err != nil {
-			s.ChannelMessageSend(m.ChannelID, "❌ Ошибка сохранения: "+err.Error())
-		} else {
-			s.ChannelMessageSend(m.ChannelID, "✅ Конфигурация сохранена!")
-		}
-		if err := sc.LoadConfig(); err != nil {
-			s.ChannelMessageSend(m.ChannelID, "❌ Ошибка применения настроек")
-		}
-		return
 
 	case "show":
 		sc.showCurrentConfig(s, m.ChannelID)
@@ -121,13 +107,11 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		return
 	}
 
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(
-		"✅ Параметр '%s' обновлен. Не забудьте сохранить командой `!init save`", args[1]))
 }
 
 // Показать справку по команде !init
 func showInitHelp(s *discordgo.Session, channelID string) {
-	help := `**⚙️ Команда настройки сервера:**
+	help := `**Команда настройки сервера:**
 !init guild <server_id> - Установить ID сервера
 !init role <role_id> - Установить ID роли регистрации
 !init category <category_id> - Установить ID категории для каналов
@@ -139,7 +123,7 @@ func showInitHelp(s *discordgo.Session, channelID string) {
 !init save - Сохранить конфигурацию
 !init show - Показать текущую конфигурацию
 
-**ℹ️ Как получить ID:**
+**Как получить ID:**
 1. Включите режим разработчика в Discord (Настройки > Расширенные)
 2. ПКМ на элементе сервера/роли/канала > Копировать ID`
 
@@ -148,7 +132,7 @@ func showInitHelp(s *discordgo.Session, channelID string) {
 
 // Показать текущую конфигурацию
 func (sc *ServerConfig) showCurrentConfig(s *discordgo.Session, channelID string) {
-	if _, err := os.Stat(configFile); err == os.ErrNotExist {
+	if len(sc.GuildID) == 0 {
 		response := "**Конфигурация не задана!**"
 		s.ChannelMessageSend(channelID, response)
 		return
