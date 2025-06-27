@@ -14,7 +14,6 @@
 ## Установка и запуск
 
 1. **Требования**:
-   - Go 1.23+
    - Discord аккаунт с правами администратора на сервере
    - Токен бота Discord ([получить здесь](https://discord.com/developers/applications))
 
@@ -23,34 +22,46 @@
    git clone https://github.com/reinbowARA/DiscordRegistredBot
    cd DiscordRegistredBot
    ```
-
-3. **Установка зависимостей**:
-   ```bash
-   go mod tidy
-   ```
-
-4. **Настройка конфигурации**:
-- Создайте файл `.env` в корне проекта:
-     ```
-     DISCORD_BOT_TOKEN=your_discord_bot_token
-     ```
-- Можно заранее описать конфигурацию сервера для регистрации по [примеру файла конфигурации](#пример-файла-конфигурации-configjson)
-  - Перед этим нужно в папке `config` создать файл `server_config.json`
-1. **Запуск бота**:
-   ```bash
-   go run main.go
-   ```
-
+3. **Запуск через код:**
+   1. **Установка зависимостей**:
+      ```bash
+      go mod tidy
+      ```
+   2. **Настройка конфигурации**:
+       Создайте файл `.env` в корне проекта:
+        ```
+        DISCORD_BOT_TOKEN=your_discord_bot_token
+        ```
+        > [!IMPORTANT]
+        > Перед эти нужно установить пакет [github.com/joho/godotenv](https://github.com/joho/godotenv) и приписать в коде main.go `godotenv.Load()`
+   3. **Запуск бота**:
+      ```bash
+      go run main.go
+      ```
+4. **Запуск через докер:**
+   1.  **Настройка конфигурации**:
+       Создайте файл `.env` в корне проекта:
+        ```
+        DISCORD_BOT_TOKEN=your_discord_bot_token
+        ```
+   2. Запускаем Docker контейнер
+      ```sh
+      docker compose up
+      ```
 ## Конфигурация сервера
 
 Используйте команду `!init` для настройки сервера:
 
 ```
-!init load - Загрузить конфигурацию из прикрепленного JSON-файла
-!init save - Сохранить текущую конфигурацию
+!init guild <server_id> - Установить ID сервера
+!init role <role_id> - Установить ID роли регистрации
+!init category <category_id> - Установить ID категории для каналов
+!init channel <channel_id> - Установить ID канала для команд
+!init preserved <roles_id> - Установить сохраняемые роли (через запятую)
+!init guild_role <role_id> - Установка роли для согильдийцев
+!init friend_role <role_id> - Установка роли для друзей
+!init load <json file> - Конфигурация через файл
 !init show - Показать текущую конфигурацию
-!init template - Получить шаблон конфигурации
-!init export - Экспортировать текущую конфигурацию
 ```
 
 ### Пример файла конфигурации (`config.json`):
