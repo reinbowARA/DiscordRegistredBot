@@ -155,7 +155,6 @@ func (sc *ServerConfig) showCurrentConfig(s *discordgo.Session, channelID string
 	response += fmt.Sprintf("Канал команд: ` %s `\n", sc.CommandChannelID)
 	response += fmt.Sprintf("Роль Согильдийца: <@&%s>\n", sc.GuildRoleId)
 	response += fmt.Sprintf("Роль друга: <@&%s>\n", sc.FriendRoleId)
-	response += "\nИспользуйте `!init save` для сохранения изменений"
 
 	s.ChannelMessageSend(channelID, response)
 }
