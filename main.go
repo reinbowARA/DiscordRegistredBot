@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,16 +9,17 @@ import (
 	"github.com/reinbowARA/DiscordRegistredBot/handler"
 )
 
+var Logger = handler.SetupLogger()
+
 func main() {
 	var srv handler.ServerConfig
-
 	if err := handler.LoadQuestions(); err != nil {
-		fmt.Println("Ошибка загрузки вопросов:", err)
+		Logger.Error("Ошибка загрузки вопросов: "+err.Error())
 		return
 	}
 	session, err := discordgo.New("Bot " + os.Getenv("DISCORD_BOT_TOKEN"))
 	if err != nil {
-		fmt.Println("Ошибка создания сессии:", err)
+		Logger.Error("Ошибка создания сессии: "+err.Error())
 		return
 	}
 
@@ -32,12 +32,12 @@ func main() {
 
 	err = session.Open()
 	if err != nil {
-		fmt.Println("Ошибка подключения:", err)
+		Logger.Error("Ошибка подключения: "+err.Error())
 		return
 	}
 	defer session.Close()
 
-	fmt.Println("Бот запущен! Для остановки Ctrl+C")
+	Logger.Info("Бот запущен! Для остановки Ctrl+C")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc

@@ -19,20 +19,20 @@ func (sc *ServerConfig) NewGuildMember(s *discordgo.Session, m *discordgo.GuildM
 	// Выдаем роль регистрации
 	roleID := findRoleID(s, m.GuildID, sc.RegistrationRole)
 	if roleID == "" {
-		fmt.Println("Роль 'Регистрация' не найдена!")
+		logger.Warn("Роль 'Регистрация' не найдена!")
 		return
 	}
 
 	err := s.GuildMemberRoleAdd(m.GuildID, m.User.ID, roleID)
 	if err != nil {
-		fmt.Println("Ошибка выдачи роли:", err)
+		logger.Error("Ошибка выдачи роли: " + err.Error())
 		return
 	}
 
 	// Создаем приватный канал
 	channel, err := sc.createPrivateChannel(s, m.Member)
 	if err != nil {
-		fmt.Println("Ошибка создания канала:", err)
+		logger.Error("Ошибка создания канала: " + err.Error())
 		return
 	}
 
@@ -45,7 +45,7 @@ func (sc *ServerConfig) NewGuildMember(s *discordgo.Session, m *discordgo.GuildM
 	}
 	registeringUsers[m.User.ID] = state
 	mu.Unlock()
-
+	logger.Info("Пользователь ID:" + m.User.ID + "(" + m.User.Username + ") начал регистрацию")
 	// Запускаем первый вопрос
 	sc.sendNextQuestion(s, state, channel.ID, m.User.ID)
 }
@@ -176,6 +176,7 @@ func (sc *ServerConfig) completeRegistration(s *discordgo.Session, state *Regist
 	// Меняем никнейм
 	err := s.GuildMemberNickname(sc.GuildID, userID, nickname)
 	if err != nil {
+		logger.Error("Ошибка при смене ника: " + err.Error())
 		s.ChannelMessageSend(channelID, "Ошибка при смене ника: "+err.Error())
 	} else {
 		s.ChannelMessageSend(channelID, "Твой ник успешно изменен на: "+nickname)
@@ -203,7 +204,7 @@ func (sc *ServerConfig) completeRegistration(s *discordgo.Session, state *Regist
 		}
 	}
 	s.ChannelMessageSend(channelID, summary)
-
+	logger.Info("Пользователь ID:" + userID + " завершил регистрацию!")
 	// Отправляем дополнительную информацию по выбору
 	handleChoice(s, state, channelID)
 

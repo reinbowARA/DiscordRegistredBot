@@ -34,3 +34,5 @@ type RegistrationState struct {
 	Answers         []string
 	CurrentQuestion *Question
 }
+
+var logger = SetupLogger()

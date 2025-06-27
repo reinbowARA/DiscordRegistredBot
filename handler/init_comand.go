@@ -20,6 +20,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 
 	switch args[1] {
 	case "guild":
+		logger.Info("Запуск команды !init guild")
 		if len(args) < 3 {
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID сервера: `!init guild <server_id>`")
 			return
@@ -27,6 +28,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.GuildID = args[2]
 
 	case "role":
+		logger.Info("Запуск команды !init role")
 		if len(args) < 3 {
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли регистрации: `!init role <role_id>`")
 			return
@@ -34,6 +36,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.RegistrationRole = args[2]
 
 	case "category":
+		logger.Info("Запуск команды !init category")
 		if len(args) < 3 {
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID категории: `!init category <category_id>`")
 			return
@@ -41,6 +44,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.CategoryID = args[2]
 
 	case "channel":
+		logger.Info("Запуск команды !init channel")
 		if len(args) < 3 {
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID канала команд: `!init channel <channel_id>`")
 			return
@@ -48,6 +52,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.CommandChannelID = args[2]
 
 	case "guild_role":
+		logger.Info("Запуск команды !init guild_role")
 		if len(args) < 3 {
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли согильдийца: `!init guild_role <role_id>`")
 			return
@@ -55,6 +60,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.GuildRoleId = args[2]
 
 	case "friend_role":
+		logger.Info("Запуск команды !init friend_role")
 		if len(args) < 3 {
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли друга: `!init friend_role <role_id>`")
 			return
@@ -62,6 +68,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		sc.FriendRoleId = args[2]
 
 	case "load":
+		logger.Info("Запуск команды !init load")
 		if len(m.Attachments) == 0 {
 			s.ChannelMessageSend(m.ChannelID, "Прикрепите JSON-файл с конфигурацией")
 			return
@@ -76,6 +83,7 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		// Скачиваем файл
 		resp, err := http.Get(attachment.URL)
 		if err != nil {
+			logger.Error("Ошибка загрузки файла: " + err.Error())
 			s.ChannelMessageSend(m.ChannelID, "Ошибка загрузки файла: "+err.Error())
 			return
 		}
@@ -84,21 +92,25 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		// Читаем содержимое
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
+			logger.Error("Ошибка чтения файла: " + err.Error())
 			s.ChannelMessageSend(m.ChannelID, "Ошибка чтения файла: "+err.Error())
 			return
 		}
 
 		// Парсим JSON
 		if err := json.Unmarshal(data, sc); err != nil {
+			logger.Error("Ошибка парсинга JSON: "+err.Error())
 			s.ChannelMessageSend(m.ChannelID, "Ошибка парсинга JSON: "+err.Error())
 			return
 		}
 
 		// Применяем конфигурацию
+		logger.Info("Файл загружен")
 		s.ChannelMessageSend(m.ChannelID, "Конфигурация загружена из файла!")
 		sc.showCurrentConfig(s, m.ChannelID)
 
 	case "show":
+		logger.Info("Запуск команды !init show")
 		sc.showCurrentConfig(s, m.ChannelID)
 		return
 
