@@ -169,17 +169,13 @@ func (sc *ServerConfig) processRegistrationAnswer(s *discordgo.Session, m *disco
 func (sc *ServerConfig) completeRegistration(s *discordgo.Session, state *RegistrationState, userID string) {
 	channelID := state.ChannelID
 
-	// Извлекаем ник из первого ответа
-	nickParts := strings.Split(state.Answers[0], "(")
-	nickname := strings.TrimSpace(nickParts[0])
-
 	// Меняем никнейм
-	err := s.GuildMemberNickname(sc.GuildID, userID, nickname)
+	err := s.GuildMemberNickname(sc.GuildID, userID, state.Answers[0])
 	if err != nil {
 		logger.Error("Ошибка при смене ника: " + err.Error())
 		s.ChannelMessageSend(channelID, "Ошибка при смене ника: "+err.Error())
 	} else {
-		s.ChannelMessageSend(channelID, "Твой ник успешно изменен на: "+nickname)
+		s.ChannelMessageSend(channelID, "Твой ник успешно изменен на: "+state.Answers[0])
 	}
 
 	// Удаляем роль регистрации
