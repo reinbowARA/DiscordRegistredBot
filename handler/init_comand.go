@@ -12,6 +12,13 @@ import (
 
 // Обработка команды инициализации
 func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Проверка прав администратора
+	if !IsAdmin(s, m) {
+		logger.Warn("Попытка пользователя использовать команды")
+		s.ChannelMessageSend(m.ChannelID, "У вас недостаточно прав для выполнения этой команды")
+		return
+	}
+	
 	args := strings.Fields(m.Content)
 	if len(args) < 2 {
 		showInitHelp(s, m.ChannelID)
