@@ -11,7 +11,7 @@ import (
 )
 
 // Обработка команды инициализации
-func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+func handleInitCommand(s *discordgo.Session, m *discordgo.MessageCreate, guildID string) {
 	// Проверка прав администратора
 	if !IsAdmin(s, m) {
 		logger.Warn("Попытка пользователя использовать команды")
@@ -25,6 +25,13 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		return
 	}
 
+	// Получаем текущую конфигурацию сервера, если есть
+	serverConfig, exists := GetServerConfig(guildID)
+	if !exists {
+		// Создаем новую конфигурацию
+		serverConfig = &ServerConfig{GuildID: guildID}
+	}
+
 	switch args[1] {
 	case "guild":
 		logger.Info("Запуск команды !init guild")
@@ -32,7 +39,29 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID сервера: `!init guild <server_id>`")
 			return
 		}
-		sc.GuildID = args[2]
+		
+		// Обновляем GuildID
+		newGuildID := args[2]
+		serverConfig.GuildID = newGuildID
+		
+		// Сохраняем в БД с новым GuildID
+		regConfig, _ := GetRegistrationConfig(newGuildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
+
+		if err := SaveConfigToDB(newGuildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[newGuildID] = serverConfig
+		mu.Unlock()
+
+		s.ChannelMessageSend(m.ChannelID, "ID сервера установлен: " + newGuildID)
 
 	case "role":
 		logger.Info("Запуск команды !init role")
@@ -40,7 +69,26 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли регистрации: `!init role <role_id>`")
 			return
 		}
-		sc.RegistrationRole = args[2]
+		serverConfig.RegistrationRole = args[2]
+		
+		// Сохраняем изменения в БД
+		regConfig, _ := GetRegistrationConfig(guildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
+
+		if err := SaveConfigToDB(guildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[guildID] = serverConfig
+		mu.Unlock()
+
+		s.ChannelMessageSend(m.ChannelID, "ID роли регистрации установлен: " + args[2])
 
 	case "category":
 		logger.Info("Запуск команды !init category")
@@ -48,7 +96,26 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID категории: `!init category <category_id>`")
 			return
 		}
-		sc.CategoryID = args[2]
+		serverConfig.CategoryID = args[2]
+		
+		// Сохраняем изменения в БД
+		regConfig, _ := GetRegistrationConfig(guildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
+
+		if err := SaveConfigToDB(guildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[guildID] = serverConfig
+		mu.Unlock()
+
+		s.ChannelMessageSend(m.ChannelID, "ID категории установлен: " + args[2])
 
 	case "channel":
 		logger.Info("Запуск команды !init channel")
@@ -56,7 +123,26 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID канала команд: `!init channel <channel_id>`")
 			return
 		}
-		sc.CommandChannelID = args[2]
+		serverConfig.CommandChannelID = args[2]
+		
+		// Сохраняем изменения в БД
+		regConfig, _ := GetRegistrationConfig(guildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
+
+		if err := SaveConfigToDB(guildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[guildID] = serverConfig
+		mu.Unlock()
+
+		s.ChannelMessageSend(m.ChannelID, "ID канала команд установлен: " + args[2])
 
 	case "guild_role":
 		logger.Info("Запуск команды !init guild_role")
@@ -64,7 +150,26 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли согильдийца: `!init guild_role <role_id>`")
 			return
 		}
-		sc.GuildRoleId = args[2]
+		serverConfig.GuildRoleId = args[2]
+		
+		// Сохраняем изменения в БД
+		regConfig, _ := GetRegistrationConfig(guildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
+
+		if err := SaveConfigToDB(guildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[guildID] = serverConfig
+		mu.Unlock()
+
+		s.ChannelMessageSend(m.ChannelID, "ID роли согильдийца установлен: " + args[2])
 
 	case "friend_role":
 		logger.Info("Запуск команды !init friend_role")
@@ -72,12 +177,31 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 			s.ChannelMessageSend(m.ChannelID, "Укажите ID роли друга: `!init friend_role <role_id>`")
 			return
 		}
-		sc.FriendRoleId = args[2]
+		serverConfig.FriendRoleId = args[2]
+		
+		// Сохраняем изменения в БД
+		regConfig, _ := GetRegistrationConfig(guildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
 
-	case "load":
-		logger.Info("Запуск команды !init load")
+		if err := SaveConfigToDB(guildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[guildID] = serverConfig
+		mu.Unlock()
+
+		s.ChannelMessageSend(m.ChannelID, "ID роли друга установлен: " + args[2])
+
+	case "load_server":
+		logger.Info("Запуск команды !init load_server")
 		if len(m.Attachments) == 0 {
-			s.ChannelMessageSend(m.ChannelID, "Прикрепите JSON-файл с конфигурацией")
+			s.ChannelMessageSend(m.ChannelID, "Прикрепите JSON-файл с конфигурацией сервера (ServerConfig)")
 			return
 		}
 
@@ -105,27 +229,110 @@ func (sc *ServerConfig) handleInitCommand(s *discordgo.Session, m *discordgo.Mes
 		}
 
 		// Парсим JSON
-		if err := json.Unmarshal(data, sc); err != nil {
+		var loadedConfig ServerConfig
+		if err := json.Unmarshal(data, &loadedConfig); err != nil {
 			logger.Error("Ошибка парсинга JSON: "+err.Error())
 			s.ChannelMessageSend(m.ChannelID, "Ошибка парсинга JSON: "+err.Error())
 			return
 		}
 
-		// Применяем конфигурацию
-		logger.Info("Файл загружен")
-		s.ChannelMessageSend(m.ChannelID, "Конфигурация загружена из файла!")
-		sc.showCurrentConfig(s, m.ChannelID)
+		// Если GuildID не установлен в загруженной конфигурации, берем его из контекста
+		if loadedConfig.GuildID == "" {
+			loadedConfig.GuildID = guildID
+		}
+
+		// Устанавливаем значения из загруженной конфигурации
+		serverConfig.GuildID = loadedConfig.GuildID
+		serverConfig.RegistrationRole = loadedConfig.RegistrationRole
+		serverConfig.CategoryID = loadedConfig.CategoryID
+		serverConfig.CommandChannelID = loadedConfig.CommandChannelID
+		serverConfig.GuildRoleId = loadedConfig.GuildRoleId
+		serverConfig.FriendRoleId = loadedConfig.FriendRoleId
+
+		// Получаем или создаем RegistrationConfig
+		regConfig, _ := GetRegistrationConfig(serverConfig.GuildID)
+		if regConfig == nil {
+			regConfig = &RegistrationConfig{Version: "1.0"}
+		}
+
+		// Сохраняем в БД
+		if err := SaveConfigToDB(serverConfig.GuildID, serverConfig, regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		serverConfigs[serverConfig.GuildID] = serverConfig
+		mu.Unlock()
+
+		logger.Info("ServerConfig загружен и сохранен для сервера: " + serverConfig.GuildID)
+		s.ChannelMessageSend(m.ChannelID, "Конфигурация сервера загружена и сохранена для сервера: " + serverConfig.GuildID)
+		showCurrentConfig(s, m.ChannelID, serverConfig)
+
+	case "load_registration":
+		logger.Info("Запуск команды !init load_registration")
+		if len(m.Attachments) == 0 {
+			s.ChannelMessageSend(m.ChannelID, "Прикрепите JSON-файл с конфигурацией регистрации (RegistrationConfig)")
+			return
+		}
+
+		attachment := m.Attachments[0]
+		if !strings.HasSuffix(attachment.Filename, ".json") {
+			s.ChannelMessageSend(m.ChannelID, "Файл должен быть в формате JSON")
+			return
+		}
+
+		// Скачиваем файл
+		resp, err := http.Get(attachment.URL)
+		if err != nil {
+			logger.Error("Ошибка загрузки файла: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка загрузки файла: "+err.Error())
+			return
+		}
+		defer resp.Body.Close()
+
+		// Читаем содержимое
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Error("Ошибка чтения файла: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка чтения файла: "+err.Error())
+			return
+		}
+
+		// Парсим JSON
+		var regConfig RegistrationConfig
+		if err := json.Unmarshal(data, &regConfig); err != nil {
+			logger.Error("Ошибка парсинга JSON: "+err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка парсинга JSON: "+err.Error())
+			return
+		}
+
+		// Сохраняем в БД
+		if err := SaveConfigToDB(guildID, serverConfig, &regConfig); err != nil {
+			logger.Error("Ошибка сохранения в БД: " + err.Error())
+			s.ChannelMessageSend(m.ChannelID, "Ошибка сохранения в БД: "+err.Error())
+			return
+		}
+
+		// Обновляем в памяти
+		mu.Lock()
+		registrationConfigs[guildID] = &regConfig
+		mu.Unlock()
+
+		logger.Info("RegistrationConfig загружен и сохранен для сервера: " + guildID)
+		s.ChannelMessageSend(m.ChannelID, "Конфигурация регистрации загружена и сохранена для сервера: " + guildID)
 
 	case "show":
 		logger.Info("Запуск команды !init show")
-		sc.showCurrentConfig(s, m.ChannelID)
+		showCurrentConfig(s, m.ChannelID, serverConfig)
 		return
 
 	default:
 		showInitHelp(s, m.ChannelID)
 		return
 	}
-
 }
 
 // Показать справку по команде !init
@@ -135,10 +342,10 @@ func showInitHelp(s *discordgo.Session, channelID string) {
 !init role <role_id> - Установить ID роли регистрации
 !init category <category_id> - Установить ID категории для каналов
 !init channel <channel_id> - Установить ID канала для команд
-!init preserved <roles_id> - Установить сохраняемые роли (через запятую)
 !init guild_role <role_id> - Установка роли для согильдийцев
 !init friend_role <role_id> - Установка роли для друзей
-!init load <json file> - Конфигурация через файл
+!init load_server <json file> - Загрузить конфигурацию сервера (ServerConfig)
+!init load_registration <json file> - Загрузить конфигурацию регистрации (RegistrationConfig)
 !init show - Показать текущую конфигурацию
 
 **Как получить ID:**
@@ -149,14 +356,14 @@ func showInitHelp(s *discordgo.Session, channelID string) {
 }
 
 // Показать текущую конфигурацию
-func (sc *ServerConfig) showCurrentConfig(s *discordgo.Session, channelID string) {
-	if len(sc.GuildID) == 0 {
-		response := "**Конфигурация не задана!**"
-		s.ChannelMessageSend(channelID, response)
-		return
-	}
+func showCurrentConfig(s *discordgo.Session, channelID string, sc *ServerConfig) {
 	response := "**Текущая конфигурация:**\n"
-	response += fmt.Sprintf("Сервер (GuildID): ` %s `\n", sc.GuildID)
+	if len(sc.GuildID) == 0 {
+		response += "Сервер (GuildID): ` Не установлено `\n"
+		response += "*Для полноценной работы бота необходимо установить ID сервера командой: !init guild <server_id>*\n"
+	} else {
+		response += fmt.Sprintf("Сервер (GuildID): ` %s `\n", sc.GuildID)
+	}
 	response += fmt.Sprintf("Роль регистрации: <@&%s>\n", sc.RegistrationRole)
 	response += fmt.Sprintf("Категория каналов: ` %s `\n", sc.CategoryID)
 	response += fmt.Sprintf("Канал команд: ` %s `\n", sc.CommandChannelID)

@@ -14,18 +14,27 @@ func (sc *ServerConfig) handleAdminCommand(s *discordgo.Session, m *discordgo.Me
 		s.ChannelMessageSend(m.ChannelID, "У вас недостаточно прав для выполнения этой команды")
 		return
 	}
-	switch strings.ToLower(m.Content) {
+	
+	// Разбираем команду и аргументы
+	args := strings.Fields(m.Content)
+	if len(args) == 0 {
+		return
+	}
+	
+	command := strings.ToLower(args[0])
+	
+	switch command {
 	case "!clsroles":
 		logger.Info("Запуск команды !сlsRoles")
 		sc.removeAllRoles(s, m)
 
 	case "!startregistred":
 		logger.Info("Запуск команды !startRegistred")
-		sc.startRegistrationForUnregistered(s, m)
+		sc.handleStartRegistrationCommand(s, m, args[1:])
 
 	case "!stopregistred":
 		logger.Info("Запуск команды !stopRegistred")
-		sc.stopAllRegistrations(s, m)
+		sc.handleStopRegistrationCommand(s, m, args[1:])
 
 	case "!help":
 		logger.Info("Запуск команды !help")

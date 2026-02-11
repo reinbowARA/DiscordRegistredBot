@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -40,13 +41,108 @@ func findRoleID(s *discordgo.Session, guildID, roleID string) string {
 	return ""
 }
 
-// Загрузка вопросов из JSON
-func LoadQuestions() error {
-	file, err := os.ReadFile(QuestionsFilePath)
+// Инициализация базы данных
+func InitDB() error {
+	var err error
+	db, err = sql.Open("sqlite3", DBPath)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(file, &questions)
+
+	// Создание таблицы
+	createTableSQL := `
+	CREATE TABLE IF NOT EXISTS registration_configs(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id TEXT NOT NULL UNIQUE,
+		meta_data TEXT NOT NULL CHECK(json_valid(meta_data)),
+		config_json TEXT NOT NULL CHECK(json_valid(config_json)),
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	`
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		return err
+	}
+
+	// Загрузка конфигураций в память
+	return LoadConfigsFromDB()
+}
+
+// Загрузка конфигураций из базы данных
+func LoadConfigsFromDB() error {
+	rows, err := db.Query("SELECT guild_id, meta_data, config_json FROM registration_configs")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var guildID, metaDataStr, configJSONStr string
+		err := rows.Scan(&guildID, &metaDataStr, &configJSONStr)
+		if err != nil {
+			return err
+		}
+
+		// Парсим ServerConfig из meta_data
+		var serverConfig ServerConfig
+		if err := json.Unmarshal([]byte(metaDataStr), &serverConfig); err != nil {
+			logger.Error("Ошибка парсинга ServerConfig для гильдии " + guildID + ": " + err.Error())
+			continue
+		}
+		serverConfigs[guildID] = &serverConfig
+
+		// Парсим RegistrationConfig из config_json
+		var regConfig RegistrationConfig
+		if err := json.Unmarshal([]byte(configJSONStr), &regConfig); err != nil {
+			logger.Error("Ошибка парсинга RegistrationConfig для гильдии " + guildID + ": " + err.Error())
+			continue
+		}
+		registrationConfigs[guildID] = &regConfig
+	}
+
+	return rows.Err()
+}
+
+// Сохранение конфигурации в базу данных
+func SaveConfigToDB(guildID string, serverConfig *ServerConfig, regConfig *RegistrationConfig) error {
+	metaDataJSON, err := json.Marshal(serverConfig)
+	if err != nil {
+		return err
+	}
+
+	configJSON, err := json.Marshal(regConfig)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
+		INSERT OR REPLACE INTO registration_configs (guild_id, meta_data, config_json, updated_at)
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+		guildID, string(metaDataJSON), string(configJSON))
+	return err
+}
+
+// Получение конфигурации для гильдии
+func GetServerConfig(guildID string) (*ServerConfig, bool) {
+	mu.Lock()
+	defer mu.Unlock()
+	config, exists := serverConfigs[guildID]
+	return config, exists
+}
+
+// Получение RegistrationConfig для гильдии
+func GetRegistrationConfig(guildID string) (*RegistrationConfig, bool) {
+	mu.Lock()
+	defer mu.Unlock()
+	config, exists := registrationConfigs[guildID]
+	return config, exists
+}
+
+// Загрузка вопросов из JSON (для обратной совместимости, но теперь из БД)
+func LoadQuestions() error {
+	// Инициализируем БД
+	return InitDB()
 }
 
 func SetupLogger() *slog.Logger {

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -160,9 +161,13 @@ func (sc *ServerConfig) showHelp(s *discordgo.Session, m *discordgo.MessageCreat
 	helpMessage := `**Доступные команды администратора:**
 
 !clsRoles - Удаляет ВСЕ роли у ВСЕХ пользователей сервера
-!startRegistred - Запускает регистрацию для пользователей без роли "Регистрация"
-!stopRegistred - Принудительно прерывает ВСЕ активные регистрационные сессии
+!startRegistred [--all] [--user_id USER_ID] - Запускает регистрацию для пользователей без роли "Регистрация"
+!stopRegistred [--all] [--user_id USER_ID] - Принудительно прерывает активные регистрационные сессии
 !help - Показывает это сообщение
+
+Флаги:
+--all           - Применяется ко всем пользователям (по умолчанию)
+--user_id ID    - Применяется к конкретному пользователю по ID
 
 **Внимание:**
 - Команды работают только в специальном канале для команд
@@ -189,4 +194,154 @@ func (sc *ServerConfig) handleStatusCommand(s *discordgo.Session, m *discordgo.M
 		len(guild.Roles))
 
 	s.ChannelMessageSend(m.ChannelID, response)
+}
+
+// Обработка команды startRegistration с флагами
+func (sc *ServerConfig) handleStartRegistrationCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	userID := ""
+
+	// Парсим аргументы
+	for i := 0; i < len(args); i++ {
+		arg := strings.ToLower(args[i])
+		switch arg {
+		case "--all":
+			// Флаг --all является поведением по умолчанию, когда не указан --user_id
+			continue
+		case "--user_id":
+			if i+1 < len(args) {
+				userID = args[i+1]
+				i++ // Пропускаем следующий аргумент (значение user_id)
+			}
+		}
+	}
+
+	if userID != "" {
+		// Запуск регистрации для конкретного пользователя
+		sc.startRegistrationForUser(s, m, userID)
+	} else {
+		// Запуск регистрации для всех незарегистрированных (поведение по умолчанию)
+		sc.startRegistrationForUnregistered(s, m)
+	}
+}
+
+// Обработка команды stopRegistration с флагами
+func (sc *ServerConfig) handleStopRegistrationCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	userID := ""
+
+	// Парсим аргументы
+	for i := 0; i < len(args); i++ {
+		arg := strings.ToLower(args[i])
+		switch arg {
+		case "--all":
+			// Флаг --all является поведением по умолчанию, когда не указан --user_id
+			continue
+		case "--user_id":
+			if i+1 < len(args) {
+				userID = args[i+1]
+				i++ // Пропускаем следующий аргумент (значение user_id)
+			}
+		}
+	}
+
+	if userID != "" {
+		// Остановка регистрации для конкретного пользователя
+		sc.stopRegistrationForUser(s, m, userID)
+	} else {
+		// Остановка всех регистраций (поведение по умолчанию)
+		sc.stopAllRegistrations(s, m)
+	}
+}
+
+// Запуск регистрации для конкретного пользователя
+func (sc *ServerConfig) startRegistrationForUser(s *discordgo.Session, m *discordgo.MessageCreate, userID string) {
+	registrationRoleID := findRoleID(s, sc.GuildID, sc.RegistrationRole)
+	if registrationRoleID == "" {
+		s.ChannelMessageSend(m.ChannelID, "Роль 'Регистрация' не найдена")
+		return
+	}
+
+	// Получаем информацию о пользователе
+	member, err := s.GuildMember(sc.GuildID, userID)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "Пользователь не найден: "+err.Error())
+		return
+	}
+
+	// Пропускаем ботов
+	if member.User.Bot {
+		s.ChannelMessageSend(m.ChannelID, "Боты не могут проходить регистрацию")
+		return
+	}
+
+	// Проверяем наличие роли регистрации
+	hasRegistrationRole := false
+	for _, role := range member.Roles {
+		if role == registrationRoleID {
+			hasRegistrationRole = true
+			break
+		}
+	}
+
+	// Если пользователь уже имеет роль регистрации, пропускаем
+	if hasRegistrationRole {
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Пользователь <@%s> уже имеет роль регистрации", userID))
+		return
+	}
+
+	// Проверяем, не в процессе ли уже регистрации
+	mu.Lock()
+	_, inProgress := registeringUsers[userID]
+	mu.Unlock()
+
+	if inProgress {
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Пользователь <@%s> уже находится в процессе регистрации", userID))
+		return
+	}
+
+	// Добавляем роль регистрации
+	err = s.GuildMemberRoleAdd(sc.GuildID, userID, registrationRoleID)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Ошибка выдачи роли пользователю <@%s>: %v", userID, err))
+		return
+	}
+
+	// Запускаем процесс регистрации
+	go func() {
+		// Даем время для выдачи роли
+		time.Sleep(1 * time.Second)
+		sc.NewGuildMember(s, &discordgo.GuildMemberAdd{
+			Member: &discordgo.Member{
+				GuildID: sc.GuildID,
+				User:    member.User,
+			},
+		})
+	}()
+
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Запущена регистрация для пользователя <@%s>", userID))
+}
+
+// Остановка регистрации для конкретного пользователя
+func (sc *ServerConfig) stopRegistrationForUser(s *discordgo.Session, m *discordgo.MessageCreate, userID string) {
+	mu.Lock()
+	state, exists := registeringUsers[userID]
+	if !exists {
+		mu.Unlock()
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Пользователь <@%s> не находится в процессе регистрации", userID))
+		return
+	}
+
+	// Удаляем канал
+	_, err := s.ChannelDelete(state.ChannelID)
+	mu.Unlock()
+
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Ошибка удаления канала пользователя <@%s>: %v", userID, err))
+	} else {
+		// Удаляем из списка регистрирующихся
+		mu.Lock()
+		delete(registeringUsers, userID)
+		mu.Unlock()
+		
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Регистрация пользователя <@%s> прервана", userID))
+	}
 }
