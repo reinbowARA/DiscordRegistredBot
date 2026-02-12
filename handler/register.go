@@ -341,7 +341,10 @@ func (sc *ServerConfig) executeActions(s *discordgo.Session, userID string, acti
 			}
 		case "change_nickname":
 			nickname := sc.resolveTemplate(action.Format, userAnswer, session)
-			s.GuildMemberNickname(sc.GuildID, userID, nickname)
+			err := s.GuildMemberNickname(sc.GuildID, userID, nickname)
+			if err != nil {
+				logger.Error(err.Error())
+			}
 		}
 	}
 }
@@ -374,8 +377,10 @@ func (sc *ServerConfig) resolveTemplate(template string, userAnswer *UserAnswer,
 			result = strings.ReplaceAll(result, "@selected.role_id", userAnswer.Selected.RoleID)
 			result = strings.ReplaceAll(result, "@selected.text", userAnswer.Selected.Text)
 		}
+		// Заменяем @input и {value} на значение ответа
 		if val, ok := userAnswer.Value.(string); ok {
 			result = strings.ReplaceAll(result, "@input", val)
+			result = strings.ReplaceAll(result, "{value}", val)
 		}
 	}
 
